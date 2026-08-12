@@ -87,7 +87,31 @@ export async function fetchScoreboard(
   throw new EspnError(`ESPN scoreboard fetch failed (${lastError})`);
 }
 
-/** Inclusive date-range string for a full season, e.g. 2025 -> Aug 2025..Jun 2026. */
+/** Inclusive date-range string for a full season, e.g. 2025 -> Jul 2025..Jun 2026. */
 export function seasonDateRange(seasonStartYear: number): string {
   return `${seasonStartYear}0701-${seasonStartYear + 1}0630`;
+}
+
+function yyyymmdd(d: Date): string {
+  return (
+    `${d.getUTCFullYear()}` +
+    `${String(d.getUTCMonth() + 1).padStart(2, "0")}` +
+    `${String(d.getUTCDate()).padStart(2, "0")}`
+  );
+}
+
+/**
+ * The window the scheduled ingest polls.
+ *
+ * Looks backwards as well as forwards: a match that finished after the last
+ * run still needs its final score written, and kickoff times get moved for
+ * TV, so upcoming fixtures must be re-read rather than trusted from a
+ * single earlier fetch.
+ */
+export function recentWindow(daysBack = 3, daysForward = 10, now = new Date()): string {
+  const from = new Date(now);
+  from.setUTCDate(from.getUTCDate() - daysBack);
+  const to = new Date(now);
+  to.setUTCDate(to.getUTCDate() + daysForward);
+  return `${yyyymmdd(from)}-${yyyymmdd(to)}`;
 }

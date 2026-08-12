@@ -42,14 +42,10 @@ async function upsertTeams(
   return new Map(rows.map((r) => [r.externalId, r.id]));
 }
 
-/**
- * Upsert one match. Kept per-row deliberately: a single malformed record
- * (an unknown club, a null kickoff) must not abort the whole run.
- */
-async function upsertMatch(
-  m: NormalizedMatch,
-  teamIds: Map<string, number>,
-): Promise<void> {
+type MatchRow = typeof matches.$inferInsert;
+
+/** Resolve FKs; throws for a match referencing a club we failed to upsert. */
+function toRow(m: NormalizedMatch, teamIds: Map<string, number>): MatchRow {
   const homeTeamId = teamIds.get(m.home.externalId);
   const awayTeamId = teamIds.get(m.away.externalId);
   if (!homeTeamId || !awayTeamId) {
@@ -57,38 +53,79 @@ async function upsertMatch(
       `unresolved club (home=${m.home.externalId} away=${m.away.externalId})`,
     );
   }
+  return {
+    externalId: m.externalId,
+    competition: m.competition,
+    season: m.season,
+    kicksOffAt: m.kicksOffAt,
+    status: m.status,
+    homeTeamId,
+    awayTeamId,
+    homeGoals: m.homeGoals,
+    awayGoals: m.awayGoals,
+    minute: m.minute,
+    stoppageMinute: m.stoppageMinute,
+  };
+}
 
-  await db
-    .insert(matches)
-    .values({
-      externalId: m.externalId,
-      competition: m.competition,
-      season: m.season,
-      kicksOffAt: m.kicksOffAt,
-      status: m.status,
-      homeTeamId,
-      awayTeamId,
-      homeGoals: m.homeGoals,
-      awayGoals: m.awayGoals,
-      minute: m.minute,
-      stoppageMinute: m.stoppageMinute,
-    })
-    .onConflictDoUpdate({
-      target: matches.externalId,
-      set: {
-        competition: sql`excluded.competition`,
-        season: sql`excluded.season`,
-        kicksOffAt: sql`excluded.kicks_off_at`,
-        status: sql`excluded.status`,
-        homeTeamId: sql`excluded.home_team_id`,
-        awayTeamId: sql`excluded.away_team_id`,
-        homeGoals: sql`excluded.home_goals`,
-        awayGoals: sql`excluded.away_goals`,
-        minute: sql`excluded.minute`,
-        stoppageMinute: sql`excluded.stoppage_minute`,
-        updatedAt: sql`now()`,
-      },
-    });
+const MATCH_CONFLICT_UPDATE = {
+  target: matches.externalId,
+  set: {
+    competition: sql`excluded.competition`,
+    season: sql`excluded.season`,
+    kicksOffAt: sql`excluded.kicks_off_at`,
+    status: sql`excluded.status`,
+    homeTeamId: sql`excluded.home_team_id`,
+    awayTeamId: sql`excluded.away_team_id`,
+    homeGoals: sql`excluded.home_goals`,
+    awayGoals: sql`excluded.away_goals`,
+    minute: sql`excluded.minute`,
+    stoppageMinute: sql`excluded.stoppage_minute`,
+    updatedAt: sql`now()`,
+  },
+} as const;
+
+const CHUNK_SIZE = 100;
+
+/**
+ * Upsert matches in chunks, falling back to per-row on failure.
+ *
+ * One row per round trip is far too slow to survive a serverless function
+ * timeout -- a 380-match season backfill took ~34s sequentially. Batching
+ * collapses that into a handful of multi-row INSERTs.
+ *
+ * Batching alone would sacrifice the "one bad record must not kill the run"
+ * guarantee, since a single bad row fails its whole chunk. So a failed chunk
+ * is retried row by row: the good rows still land and only the genuinely bad
+ * ones are reported as skipped. Fast path stays fast, bad data stays isolated.
+ */
+async function upsertMatches(
+  rows: MatchRow[],
+  skipped: IngestResult["skipped"],
+): Promise<number> {
+  let upserted = 0;
+
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + CHUNK_SIZE);
+    try {
+      await db.insert(matches).values(chunk).onConflictDoUpdate(MATCH_CONFLICT_UPDATE);
+      upserted += chunk.length;
+    } catch {
+      for (const row of chunk) {
+        try {
+          await db.insert(matches).values(row).onConflictDoUpdate(MATCH_CONFLICT_UPDATE);
+          upserted++;
+        } catch (err) {
+          skipped.push({
+            externalId: row.externalId,
+            reason: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
+  }
+
+  return upserted;
 }
 
 /**
@@ -114,11 +151,10 @@ export async function ingestWindow(dates: string): Promise<IngestResult> {
     normalized.flatMap((m) => [m.home, m.away]),
   );
 
-  let matchesUpserted = 0;
+  const rows: MatchRow[] = [];
   for (const m of normalized) {
     try {
-      await upsertMatch(m, teamIds);
-      matchesUpserted++;
+      rows.push(toRow(m, teamIds));
     } catch (err) {
       skipped.push({
         externalId: m.externalId,
@@ -126,6 +162,8 @@ export async function ingestWindow(dates: string): Promise<IngestResult> {
       });
     }
   }
+
+  const matchesUpserted = await upsertMatches(rows, skipped);
 
   return {
     window: dates,
