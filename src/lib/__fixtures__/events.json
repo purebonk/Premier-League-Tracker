@@ -1,0 +1,157 @@
+[
+ {
+  "id": "740596",
+  "date": "2025-08-15T19:00Z",
+  "shortName": "BOU @ LIV",
+  "season": {
+   "year": 2025,
+   "type": 13481,
+   "slug": "2025-26-english-premier-league"
+  },
+  "status": {
+   "clock": 5400.0,
+   "displayClock": "90'+7'",
+   "period": 2,
+   "type": {
+    "id": "28",
+    "name": "STATUS_FULL_TIME",
+    "state": "post",
+    "completed": true,
+    "description": "Full Time",
+    "detail": "FT",
+    "shortDetail": "FT"
+   }
+  },
+  "competitions": [
+   {
+    "competitors": [
+     {
+      "homeAway": "home",
+      "score": "4",
+      "team": {
+       "id": "364",
+       "displayName": "Liverpool",
+       "shortDisplayName": "Liverpool",
+       "abbreviation": "LIV",
+       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png"
+      }
+     },
+     {
+      "homeAway": "away",
+      "score": "2",
+      "team": {
+       "id": "349",
+       "displayName": "AFC Bournemouth",
+       "shortDisplayName": "Bournemouth",
+       "abbreviation": "BOU",
+       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/349.png"
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "740597",
+  "date": "2025-08-16T11:30Z",
+  "shortName": "NEW @ AVL",
+  "season": {
+   "year": 2025,
+   "type": 13481,
+   "slug": "2025-26-english-premier-league"
+  },
+  "status": {
+   "clock": 5400.0,
+   "displayClock": "90'+7'",
+   "period": 2,
+   "type": {
+    "id": "28",
+    "name": "STATUS_FULL_TIME",
+    "state": "post",
+    "completed": true,
+    "description": "Full Time",
+    "detail": "FT",
+    "shortDetail": "FT"
+   }
+  },
+  "competitions": [
+   {
+    "competitors": [
+     {
+      "homeAway": "home",
+      "score": "0",
+      "team": {
+       "id": "362",
+       "displayName": "Aston Villa",
+       "shortDisplayName": "Aston Villa",
+       "abbreviation": "AVL",
+       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png"
+      }
+     },
+     {
+      "homeAway": "away",
+      "score": "0",
+      "team": {
+       "id": "361",
+       "displayName": "Newcastle United",
+       "shortDisplayName": "Newcastle",
+       "abbreviation": "NEW",
+       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png"
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "401879301",
+  "date": "2026-08-21T19:00Z",
+  "shortName": "COV @ ARS",
+  "season": {
+   "year": 2026,
+   "type": 14308,
+   "slug": "2026-27-english-premier-league"
+  },
+  "status": {
+   "clock": 0.0,
+   "displayClock": "0'",
+   "type": {
+    "id": "1",
+    "name": "STATUS_SCHEDULED",
+    "state": "pre",
+    "completed": false,
+    "description": "Scheduled",
+    "detail": "Fri, August 21st at 3:00 PM EDT",
+    "shortDetail": "Scheduled"
+   }
+  },
+  "competitions": [
+   {
+    "competitors": [
+     {
+      "homeAway": "home",
+      "score": "0",
+      "team": {
+       "id": "359",
+       "displayName": "Arsenal",
+       "shortDisplayName": "Arsenal",
+       "abbreviation": "ARS",
+       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png"
+      }
+     },
+     {
+      "homeAway": "away",
+      "score": "0",
+      "team": {
+       "id": "388",
+       "displayName": "Coventry City",
+       "shortDisplayName": "Coventry",
+       "abbreviation": "COV",
+       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/388.png"
+      }
+     }
+    ]
+   }
+  ]
+ }
+]
