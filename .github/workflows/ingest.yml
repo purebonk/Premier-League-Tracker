@@ -1,0 +1,90 @@
+name: Scheduled ingest
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub's scheduler is best-effort and can run late
+    # under load, so the endpoint re-reads a -3/+10 day window rather than
+    # assuming it saw every match exactly once.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Backfill a whole season by start year (e.g. 2025). Leave blank for the rolling window."
+        required: false
+        type: string
+      dates:
+        description: "Explicit ESPN date window, e.g. 20250816-20250818."
+        required: false
+        type: string
+
+# A long backfill must not overlap the next scheduled tick.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger ingest
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          SEASON: ${{ inputs.season }}
+          DATES: ${{ inputs.dates }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_URL:-}" ]; then
+            echo "::error::APP_URL repository variable is not set"; exit 1
+          fi
+
+          url="$APP_URL/api/ingest"
+          if [ -n "${SEASON:-}" ]; then
+            url="$url?season=$SEASON"
+          elif [ -n "${DATES:-}" ]; then
+            url="$url?dates=$DATES"
+          fi
+
+          echo "POST ${url//$INGEST_SECRET/***}"
+
+          # Capture body and status separately so a failure can be reported
+          # with the server's own error message.
+          status=$(curl -sS -o /tmp/ingest.json -w '%{http_code}' \
+            -X POST "$url" \
+            -H "x-ingest-secret: $INGEST_SECRET" \
+            --max-time 120 --retry 2 --retry-delay 5 --retry-connrefused)
+
+          echo "HTTP $status"
+          cat /tmp/ingest.json
+
+          if [ "$status" != "200" ]; then
+            echo "::error::ingest failed with HTTP $status"; exit 1
+          fi
+
+          ok=$(jq -r '.ok' /tmp/ingest.json)
+          if [ "$ok" != "true" ]; then
+            echo "::error::ingest reported failure"; exit 1
+          fi
+
+          # Surface the run in the Actions summary rather than burying it in logs.
+          {
+            echo "### Ingest complete"
+            echo ""
+            echo "| metric | value |"
+            echo "|---|---|"
+            jq -r '"| window | \(.window) |",
+                   "| fetched | \(.fetched) |",
+                   "| teams upserted | \(.teamsUpserted) |",
+                   "| matches upserted | \(.matchesUpserted) |",
+                   "| skipped | \(.skipped | length) |",
+                   "| duration | \(.durationMs)ms |"' /tmp/ingest.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A run that skipped records still succeeds, but should be visible.
+          skipped=$(jq -r '.skipped | length' /tmp/ingest.json)
+          if [ "$skipped" != "0" ]; then
+            echo "::warning::$skipped record(s) skipped this run"
+            jq -r '.skipped[] | "  - \(.externalId): \(.reason)"' /tmp/ingest.json
+          fi
