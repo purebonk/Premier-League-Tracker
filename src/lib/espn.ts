@@ -23,6 +23,9 @@ export interface EspnTeam {
   shortDisplayName: string;
   abbreviation: string;
   logo?: string;
+  /** Six hex digits, no leading '#'. */
+  color?: string;
+  alternateColor?: string;
 }
 
 export interface EspnCompetitor {

@@ -64,6 +64,8 @@ async function upsertTeams(
         name: sql`excluded.name`,
         shortName: sql`excluded.short_name`,
         crestUrl: sql`excluded.crest_url`,
+        primaryColor: sql`excluded.primary_color`,
+        secondaryColor: sql`excluded.secondary_color`,
       },
     })
     .returning({ id: teams.id, externalId: teams.externalId });

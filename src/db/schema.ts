@@ -20,6 +20,13 @@ export const teams = pgTable(
     name: text("name").notNull(),
     shortName: text("short_name").notNull(),
     crestUrl: text("crest_url"),
+
+    // Club colours as declared by the source, stored raw (six hex digits, no
+    // leading #). Several clubs play in white, so a colour is not guaranteed
+    // to be legible on a light background -- resolving that is a presentation
+    // concern handled in src/lib/colors.ts, deliberately not baked in here.
+    primaryColor: text("primary_color"),
+    secondaryColor: text("secondary_color"),
   },
   (t) => [uniqueIndex("teams_external_id_idx").on(t.externalId)],
 );

@@ -15,6 +15,13 @@
       "when": 1786595669262,
       "tag": "0001_derived_matchweeks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786655346553,
+      "tag": "0002_team_colors",
+      "breakpoints": true
     }
   ]
 }

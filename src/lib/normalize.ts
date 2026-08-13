@@ -81,6 +81,15 @@ export interface NormalizedTeam {
   name: string;
   shortName: string;
   crestUrl: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+}
+
+/** Accepts "#RRGGBB" or "RRGGBB"; returns lowercase "rrggbb" or null. */
+export function normalizeHex(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const hex = raw.trim().replace(/^#/, "").toLowerCase();
+  return /^[0-9a-f]{6}$/.test(hex) ? hex : null;
 }
 
 export interface NormalizedMatch {
@@ -103,6 +112,8 @@ function normalizeTeam(t: EspnTeam): NormalizedTeam {
     name: t.displayName,
     shortName: t.shortDisplayName || t.abbreviation || t.displayName,
     crestUrl: t.logo ?? null,
+    primaryColor: normalizeHex(t.color),
+    secondaryColor: normalizeHex(t.alternateColor),
   };
 }
 
