@@ -1,6 +1,34 @@
 -- Matchweek is not available from the source: ESPN's scoreboard returns
 -- week: null on every match. It has to be derived from match history.
 --
+-- DEFINITION (deliberately NOT the official Premier League matchweek):
+--
+--   matchweek = N means this match is the point at which the LATER-PLAYING
+--   of its two clubs completed its Nth league match of the season.
+--
+--   Filtering `matchweek <= N` therefore gives "the table once clubs had
+--   played N matches each". A club holding a game in hand sits on N-1 played
+--   until its rearranged fixture is played.
+--
+-- HOW THIS DIFFERS FROM THE OFFICIAL TABLE, AND WHY:
+--
+-- The official matchweek is a fixture-list label fixed before the season. A
+-- match postponed from round 27 keeps the label 27 even when it is played in
+-- May, so official tables at round 27 show clubs on unequal games played.
+--
+-- We cannot recover that label -- it is not in the payload at all -- but the
+-- games-played ordering is arguably the better axis for tracking position
+-- over time: every club's line moves because of results, not because it
+-- happened to have played an extra fixture that week. The cost is that our
+-- week 27 will not match the official week 27 for clubs with a rearranged
+-- fixture, which is stated in the README and surfaced in the UI.
+--
+-- Observed in 2025/26: Crystal Palace and Spurs each carried a game in hand
+-- from week 27, so week 27 holds 9 matches and week 36 holds 11 (Man City v
+-- Crystal Palace, played 13 May, lands with the later round rather than the
+-- earlier one it was postponed from). 18 club-weeks sit at a lag of one game;
+-- the other 742 are exact.
+--
 -- Rule: a match belongs to the matchweek of the LATER-PLAYING of its two
 -- clubs -- i.e. max(home club's Nth match, away club's Nth match).
 --

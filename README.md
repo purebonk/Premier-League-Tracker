@@ -69,6 +69,33 @@ simply isn't in the payload, so it has to be derived from match history rather
 than read. The column is nullable because pretending otherwise would mean
 storing a number the source never gave us.
 
+### How matchweek is derived, and why it isn't the official one
+
+A match is assigned the matchweek of the **later-playing of its two clubs** —
+`max(home club's Nth match, away club's Nth match)`.
+
+A match has two clubs, and as soon as a fixture is rearranged their cumulative
+match counts diverge (18 of 380 matches in 2025/26). Crystal Palace v Wolves on
+22 Feb is Palace's 27th match and Wolves' 28th, so a naive per-club count gives
+one row two different answers. Taking the *minimum* would label it week 27, and
+a "table after week 27" would then show Wolves having played 28 games. Taking
+the maximum means a match only counts once both clubs have reached that point,
+so no club can ever show more games played than the week you asked for.
+
+**This is a games-played index, not the official matchweek**, and the
+difference is deliberate. The official matchweek is a fixture-list label fixed
+before the season: a match postponed from round 27 keeps the label 27 even when
+it's played in May, which is why official tables at a given round show clubs on
+unequal games. That label isn't in the payload and can't be recovered.
+
+The games-played ordering is also the better axis for tracking position over
+time — a club's line moves because of results, not because it happened to play
+an extra fixture that week. The cost is that week 27 here won't match week 27 on
+the BBC for a club with a rearranged fixture. In 2025/26 that affects Crystal
+Palace and Spurs, who each carried a game in hand from week 27 until it was
+played on 13 May; 18 club-weeks sit one game behind the label and the other 742
+are exact.
+
 ## Data model
 
 ```
