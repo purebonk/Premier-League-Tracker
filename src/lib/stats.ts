@@ -10,6 +10,8 @@
  * in-process Postgres with no network and no secrets.
  */
 
+import { slugify } from "./slug";
+
 /** Minimal executor so the same SQL runs against Neon and PGlite alike. */
 export interface Queryable {
   query<T>(sql: string, params: unknown[]): Promise<T[]>;
@@ -150,6 +152,10 @@ export interface TableRow {
   points: number;
   /** Last five results within the current filter, most recent first. */
   form: string;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  /** URL-safe identifier derived from the club name. */
+  slug: string;
 }
 
 /**
@@ -182,6 +188,8 @@ function buildStandingsSql(sort?: { column: SortColumn; direction: SortDirection
       t.id as team_id,
       t.name,
       t.short_name,
+      t.primary_color,
+      t.secondary_color,
       count(*)::int as played,
       count(*) filter (where cm.outcome = 'W')::int as won,
       count(*) filter (where cm.outcome = 'D')::int as drawn,
@@ -202,7 +210,7 @@ function buildStandingsSql(sort?: { column: SortColumn; direction: SortDirection
       ) as form
     from club_matches cm
     join teams t on t.id = cm.team_id
-    group by t.id, t.name, t.short_name
+    group by t.id, t.name, t.short_name, t.primary_color, t.secondary_color
   ),
   ordered as (
     -- A window function cannot see aliases from its own SELECT, so ranking
@@ -524,5 +532,8 @@ function toTableRow(r: Record<string, unknown>): TableRow {
     goalDifference: Number(r.goal_difference),
     points: Number(r.points),
     form: String(r.form ?? ""),
+    primaryColor: (r.primary_color as string | null) ?? null,
+    secondaryColor: (r.secondary_color as string | null) ?? null,
+    slug: slugify(String(r.name)),
   };
 }

@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
+/**
+ * Paper ground, ink, and rules — a matchday programme rather than a
+ * broadcast graphic. Colour identifies clubs and nothing else.
+ */
+@theme {
+  --color-ground: #f4f2ed;
+  --color-raised: #ffffff;
+  --color-rule: #dcd7cc;
+  --color-rule-strong: #b9b2a4;
+  --color-ink: #14161a;
+  --color-ink-muted: #6b6f76;
+  --color-ink-faint: #9a958a;
+  --color-focus: #0a5cff;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* Digits must line up down every numeric column. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visible, consistent keyboard focus everywhere. */
+:where(a, button, select, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Column headers: small, tracked, quiet. */
+.label {
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
 }
