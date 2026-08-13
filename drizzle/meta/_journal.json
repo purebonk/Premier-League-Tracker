@@ -8,6 +8,13 @@
       "when": 1786498212683,
       "tag": "0000_init_teams_matches",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786595669262,
+      "tag": "0001_derived_matchweeks",
+      "breakpoints": true
     }
   ]
 }

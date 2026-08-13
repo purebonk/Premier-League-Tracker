@@ -78,6 +78,7 @@ jobs:
                    "| fetched | \(.fetched) |",
                    "| teams upserted | \(.teamsUpserted) |",
                    "| matches upserted | \(.matchesUpserted) |",
+                   "| matchweeks updated | \(.matchweeksUpdated) |",
                    "| skipped | \(.skipped | length) |",
                    "| duration | \(.durationMs)ms |"' /tmp/ingest.json
           } >> "$GITHUB_STEP_SUMMARY"

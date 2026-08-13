@@ -60,6 +60,7 @@ async function handle(request: Request): Promise<NextResponse> {
         fetched: result.fetched,
         teamsUpserted: result.teamsUpserted,
         matchesUpserted: result.matchesUpserted,
+        matchweeksUpdated: result.matchweeksUpdated,
         skipped: result.skipped.length,
         durationMs: result.durationMs,
       }),

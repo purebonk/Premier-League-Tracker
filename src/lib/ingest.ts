@@ -9,8 +9,37 @@ export interface IngestResult {
   fetched: number;
   teamsUpserted: number;
   matchesUpserted: number;
+  matchweeksUpdated: number;
   skipped: Array<{ externalId: string | null; reason: string }>;
   durationMs: number;
+}
+
+/**
+ * Materialise derived matchweeks into matches.matchweek.
+ *
+ * The `derived_matchweeks` view is the single definition of the rule; this
+ * column is its cache, so reads can filter and index on matchweek without
+ * recomputing two window functions every time.
+ *
+ * It must run after every ingest, not just after a backfill: a rearranged
+ * fixture moving to a later kickoff shifts both clubs' match counts, which
+ * can renumber matches that were already stored. Restricting the write to
+ * rows that actually changed (`is distinct from`) keeps a no-op run cheap.
+ */
+async function refreshMatchweeks(): Promise<number> {
+  const result = await db.execute(sql`
+    with updated as (
+      update matches m
+      set matchweek = d.matchweek
+      from derived_matchweeks d
+      where d.id = m.id
+        and m.matchweek is distinct from d.matchweek
+      returning 1
+    )
+    select count(*)::int as n from updated
+  `);
+  const rows = (result as unknown as { rows?: Array<{ n: number }> }).rows ?? result;
+  return Number((rows as Array<{ n: number }>)[0]?.n ?? 0);
 }
 
 /**
@@ -164,12 +193,14 @@ export async function ingestWindow(dates: string): Promise<IngestResult> {
   }
 
   const matchesUpserted = await upsertMatches(rows, skipped);
+  const matchweeksUpdated = await refreshMatchweeks();
 
   return {
     window: dates,
     fetched: events.length,
     teamsUpserted: teamIds.size,
     matchesUpserted,
+    matchweeksUpdated,
     skipped,
     durationMs: Date.now() - startedAt,
   };
