@@ -101,12 +101,20 @@ function yyyymmdd(d: Date): string {
 }
 
 /**
- * The window the scheduled ingest polls.
+ * The window the scheduled ingest polls: 3 days back, 10 days forward,
+ * measured against the current **UTC** date.
+ *
+ * UTC matters when reading logs. A run at 04:10 UTC on Aug 13 reports the
+ * window 20260810-20260823, which from Vancouver (Aug 12, 21:10 PDT) looks
+ * like -2/+11 rather than -3/+10. The boundaries are UTC-relative, not
+ * local-relative.
  *
  * Looks backwards as well as forwards: a match that finished after the last
  * run still needs its final score written, and kickoff times get moved for
  * TV, so upcoming fixtures must be re-read rather than trusted from a
- * single earlier fetch.
+ * single earlier fetch. The window is deliberately far wider than the 10
+ * minute cron interval, so any timezone skew between our UTC boundaries and
+ * ESPN's own interpretation of `dates` is absorbed many times over.
  */
 export function recentWindow(daysBack = 3, daysForward = 10, now = new Date()): string {
   const from = new Date(now);

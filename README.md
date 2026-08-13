@@ -29,22 +29,22 @@ user-facing read path only ever touches our own Postgres.
 flowchart LR
   subgraph write["Write path - scheduled, never user-triggered"]
     direction LR
-    CRON["GitHub Actions cron<br/>every 10 min"]
-    ING["/api/ingest<br/>shared secret"]
-    ESPN["ESPN scoreboard<br/>undocumented, no auth"]
-    CRON -->|"POST + x-ingest-secret"| ING
-    ING -->|"fetch eng.1"| ESPN
+    CRON["GitHub Actions cron"]
+    ING["/api/ingest"]
+    ESPN["ESPN scoreboard API"]
+    CRON -->|"every 10 min, POST + x-ingest-secret"| ING
+    ING -->|"fetch eng.1, limit=500"| ESPN
     ESPN -->|"JSON"| ING
   end
 
-  DB[("Neon Postgres<br/>us-east-1")]
-  ING -->|"normalize, upsert<br/>ON CONFLICT external_id"| DB
+  DB[("Neon Postgres, us-east-1")]
+  ING -->|"normalize, upsert ON CONFLICT external_id"| DB
 
   subgraph read["Read path - never contacts ESPN"]
     direction LR
-    RSC["Server Components<br/>SQL aggregations"]
+    RSC["Server Components, SQL aggregations"]
     WEB["Browser"]
-    RSC --> WEB
+    RSC -->|"HTML"| WEB
   end
 
   DB --> RSC
