@@ -1,38 +1,116 @@
 @import "tailwindcss";
 
 /**
- * Paper ground, ink, and rules — a matchday programme rather than a
- * broadcast graphic. Colour identifies clubs and nothing else.
+ * Two grounds: paper and ink. The design is a matchday programme, and the dark
+ * theme is the same programme printed in reverse — not a different visual
+ * language. Colour identifies clubs and nothing else.
  */
 @theme {
-  --color-ground: #f4f2ed;
-  --color-raised: #ffffff;
-  --color-rule: #dcd7cc;
-  --color-rule-strong: #b9b2a4;
-  --color-ink: #14161a;
-  --color-ink-muted: #6b6f76;
-  --color-ink-faint: #9a958a;
-  --color-focus: #0a5cff;
+  --color-ground: var(--ground);
+  --color-raised: var(--raised);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-focus: var(--focus);
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
 
 :root {
+  --ground: #f4f2ed;
+  --raised: #ffffff;
+  --rule: #dcd7cc;
+  --rule-strong: #a9a091;
+  --ink: #14161a;
+  --ink-muted: #5f636a;
+  --ink-faint: #948d80;
+  --focus: #0a5cff;
+  --zebra: rgba(20, 22, 26, 0.028);
   color-scheme: light;
 }
 
+/* System preference, unless the reader has explicitly chosen light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #14161a;
+    --raised: #1b1e24;
+    --rule: #2c313a;
+    --rule-strong: #4a515c;
+    --ink: #e9e6df;
+    --ink-muted: #9aa0a9;
+    --ink-faint: #6d737d;
+    --focus: #6aa0ff;
+    --zebra: rgba(255, 255, 255, 0.03);
+    color-scheme: dark;
+  }
+}
+
+/* Explicit choice always wins, in both directions. */
+:root[data-theme="dark"] {
+  --ground: #14161a;
+  --raised: #1b1e24;
+  --rule: #2c313a;
+  --rule-strong: #4a515c;
+  --ink: #e9e6df;
+  --ink-muted: #9aa0a9;
+  --ink-faint: #6d737d;
+  --focus: #6aa0ff;
+  --zebra: rgba(255, 255, 255, 0.03);
+  color-scheme: dark;
+}
+
 body {
-  background: var(--color-ground);
-  color: var(--color-ink);
+  background: var(--ground);
+  color: var(--ink);
   font-family: var(--font-sans);
   /* Digits must line up down every numeric column. */
   font-variant-numeric: tabular-nums;
 }
 
-/* Visible, consistent keyboard focus everywhere. */
+/**
+ * Club colour, resolved per theme.
+ *
+ * Resolution happens on the server but the theme is chosen in the browser, so
+ * each element carries both answers and the stylesheet picks. Costs no
+ * JavaScript and cannot flash the wrong colour.
+ */
+.club-tint {
+  --club: var(--club-light);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .club-tint {
+    --club: var(--club-dark);
+  }
+}
+:root[data-theme="dark"] .club-tint {
+  --club: var(--club-dark);
+}
+
+/* The toggle names the theme it switches TO, chosen in CSS so it never
+   disagrees with what is on screen and needs no client state. */
+.theme-when-dark {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-when-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .theme-when-dark {
+    display: inline;
+  }
+}
+:root[data-theme="dark"] .theme-when-light {
+  display: none;
+}
+:root[data-theme="dark"] .theme-when-dark {
+  display: inline;
+}
+
 :where(a, button, select, input, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -54,5 +132,14 @@ body {
   line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ink-muted);
+  color: var(--ink-muted);
+}
+
+/**
+ * Banded rows. A 38-column-wide row of digits is hard to track across without
+ * something anchoring the eye; the band is quieter than a rule and does the
+ * same job.
+ */
+.zebra tbody tr:nth-child(even) {
+  background: var(--zebra);
 }

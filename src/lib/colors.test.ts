@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   resolveClubColor,
+  clubColorPair,
   contrast,
   parseHex,
   isAchromatic,
   GROUND,
+  GROUND_LIGHT,
+  GROUND_DARK,
   MIN_CONTRAST,
 } from "./colors";
 
@@ -63,11 +66,11 @@ describe("resolveClubColor", () => {
     expect(spurs).toMatchObject({ hex: "000000", source: "secondary" });
   });
 
-  it("darkens a light primary that has hue rather than swapping it away", () => {
+  it("adjusts a light primary that has hue rather than swapping it away", () => {
     // Manchester City's secondary is black, which passes contrast easily but
     // identifies nothing. Their sky blue darkened still reads as City.
     const city = resolveClubColor("99c5ea", "000000");
-    expect(city.source).toBe("darkened-primary");
+    expect(city.source).toBe("adjusted-primary");
     expect(city.contrast).toBeGreaterThanOrEqual(MIN_CONTRAST);
 
     // Still recognisably blue: blue channel dominant, hue preserved.
@@ -76,20 +79,20 @@ describe("resolveClubColor", () => {
     expect(rgb.b).toBeGreaterThan(rgb.g);
   });
 
-  it("darkens gold rather than swapping to an unrelated secondary", () => {
+  it("keeps gold rather than swapping to an unrelated secondary", () => {
     const wolves = resolveClubColor("fdb913", "32a8dd");
-    expect(wolves.source).toBe("darkened-primary");
+    expect(wolves.source).toBe("adjusted-primary");
     const rgb = parseHex(wolves.hex)!;
     // Still gold: red and green well above blue.
     expect(rgb.r).toBeGreaterThan(rgb.b);
     expect(rgb.g).toBeGreaterThan(rgb.b);
   });
 
-  it("darkens the secondary when the primary is white and the secondary is also too light", () => {
+  it("adjusts the secondary when the primary is white and the secondary is also too light", () => {
     // Leeds: white primary, yellow secondary at 1.28:1. Neither is usable as
     // given, and white has no hue, so the yellow gets darkened.
     const leeds = resolveClubColor("ffffff", "ffcd00");
-    expect(leeds.source).toBe("darkened-secondary");
+    expect(leeds.source).toBe("adjusted-secondary");
     expect(leeds.contrast).toBeGreaterThanOrEqual(MIN_CONTRAST);
     const rgb = parseHex(leeds.hex)!;
     expect(rgb.r).toBeGreaterThan(rgb.b);
@@ -124,5 +127,61 @@ describe("contrast helpers", () => {
     expect(isAchromatic(parseHex("808080")!)).toBe(true);
     expect(isAchromatic(parseHex("e20520")!)).toBe(false);
     expect(isAchromatic(parseHex("fdb913")!)).toBe(false);
+  });
+});
+
+describe("resolveClubColor on the dark ground", () => {
+  it("returns a legible colour for every club in both themes", () => {
+    for (const [club, primary, secondary] of CLUBS) {
+      for (const ground of [GROUND_LIGHT, GROUND_DARK]) {
+        const resolved = resolveClubColor(primary, secondary, ground);
+        const groundRgb = parseHex(ground)!;
+        expect(
+          contrast(parseHex(resolved.hex)!, groundRgb),
+          `${club} on ${ground} resolved to #${resolved.hex}`,
+        ).toBeGreaterThanOrEqual(MIN_CONTRAST);
+      }
+    }
+  });
+
+  it("inverts the direction of adjustment", () => {
+    // Newcastle are black: fine on paper, invisible on a dark ground, where
+    // their white secondary is the right answer.
+    expect(resolveClubColor("000000", "ffffff", GROUND_LIGHT).hex).toBe("000000");
+    expect(resolveClubColor("000000", "ffffff", GROUND_DARK).hex).toBe("ffffff");
+
+    // Spurs are the mirror image.
+    expect(resolveClubColor("ffffff", "000000", GROUND_LIGHT).hex).toBe("000000");
+    expect(resolveClubColor("ffffff", "000000", GROUND_DARK).hex).toBe("ffffff");
+  });
+
+  it("lightens a dark chromatic primary instead of discarding it", () => {
+    // Aston Villa claret is legible on paper and not on a dark ground, so it
+    // gets lightened rather than swapped for their grey secondary.
+    const villa = resolveClubColor("660e36", "333333", GROUND_DARK);
+    expect(villa.source).toBe("adjusted-primary");
+    const rgb = parseHex(villa.hex)!;
+    expect(rgb.r).toBeGreaterThan(rgb.g); // still claret, not grey
+    expect(rgb.r).toBeGreaterThan(rgb.b);
+  });
+
+  it("uses a light fallback on a dark ground", () => {
+    const resolved = resolveClubColor(null, null, GROUND_DARK);
+    expect(resolved.source).toBe("fallback");
+    expect(resolved.contrast).toBeGreaterThanOrEqual(MIN_CONTRAST);
+  });
+});
+
+describe("clubColorPair", () => {
+  it("gives a different colour per theme where the club needs one", () => {
+    const spurs = clubColorPair("ffffff", "000000");
+    expect(spurs.light).toBe("#000000");
+    expect(spurs.dark).toBe("#ffffff");
+  });
+
+  it("gives the same colour in both themes when one works everywhere", () => {
+    const arsenal = clubColorPair("e20520", "003399");
+    expect(arsenal.light).toBe("#e20520");
+    expect(arsenal.dark).toBe("#e20520");
   });
 });

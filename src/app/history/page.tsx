@@ -1,6 +1,6 @@
 import { neonQueryable } from "@/db/queryable";
 import { positionHistory, standings } from "@/lib/stats";
-import { clubColor } from "@/lib/colors";
+import { clubColorPair } from "@/lib/colors";
 import { PositionChart, type ChartClub } from "@/components/PositionChart";
 import { SeasonNotStarted } from "@/components/SeasonNotStarted";
 import { parseViewParams } from "@/lib/view-params";
@@ -26,13 +26,17 @@ export default async function HistoryPage({
     standings(db, { season: view.season }),
   ]);
 
-  const clubs: ChartClub[] = table.map((row) => ({
-    teamId: row.teamId,
-    name: row.name,
-    shortName: row.shortName,
-    slug: row.slug,
-    color: clubColor(row.primaryColor, row.secondaryColor),
-  }));
+  const clubs: ChartClub[] = table.map((row) => {
+    const { light, dark } = clubColorPair(row.primaryColor, row.secondaryColor);
+    return {
+      teamId: row.teamId,
+      name: row.name,
+      shortName: row.shortName,
+      slug: row.slug,
+      colorLight: light,
+      colorDark: dark,
+    };
+  });
 
   const weeks = points.length ? Math.max(...points.map((p) => p.matchweek)) : 0;
 

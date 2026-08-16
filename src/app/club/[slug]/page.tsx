@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { neonQueryable } from "@/db/queryable";
 import { standings, streaks, headToHead, positionHistory } from "@/lib/stats";
 import { findClubBySlug, clubMatches, nextFixture } from "@/lib/club";
-import { clubColor } from "@/lib/colors";
+import { clubTintStyle } from "@/lib/colors";
 import { FormStrip } from "@/components/FormStrip";
 import { MiniPositionLine } from "@/components/MiniPositionLine";
 
@@ -91,7 +91,6 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
   const home = homeTable.find((r) => r.teamId === club.id);
   const away = awayTable.find((r) => r.teamId === club.id);
   const line = history.filter((p) => p.teamId === club.id);
-  const color = clubColor(club.primaryColor, club.secondaryColor);
 
   const h2h = upcoming
     ? await headToHead(db, { teamAId: club.id, teamBId: upcoming.opponentId })
@@ -105,8 +104,8 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
-            className="inline-block h-7 w-[5px] rounded-[1px]"
-            style={{ backgroundColor: color }}
+            className="club-tint inline-block h-7 w-[5px] rounded-[1px]"
+            style={{ ...clubTintStyle(club.primaryColor, club.secondaryColor), background: "var(--club)" }}
           />
           <h1 className="text-[22px] font-semibold tracking-tight">{club.name}</h1>
         </div>
@@ -154,7 +153,12 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
             note="Clubs are compared at equal games played, so a game in hand does not distort the line."
           >
             <div className="border border-rule bg-raised p-2">
-              <MiniPositionLine points={line} color={color} clubs={table.length} />
+              <MiniPositionLine
+                points={line}
+                primaryColor={club.primaryColor}
+                secondaryColor={club.secondaryColor}
+                clubs={table.length}
+              />
             </div>
           </Section>
 

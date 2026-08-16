@@ -14,6 +14,8 @@
 
 /** Paper ground the UI sits on (#F4F2ED). */
 export const GROUND = "f4f2ed";
+export const GROUND_LIGHT = "f4f2ed";
+export const GROUND_DARK = "14161a";
 
 /**
  * Minimum contrast against the ground. 3:1 is the WCAG threshold for
@@ -76,15 +78,28 @@ export function isAchromatic(rgb: Rgb): boolean {
 }
 
 /**
- * Scale a colour toward black, preserving hue and saturation, until it meets
- * the contrast threshold. Terminates because black clears 3:1 against any
- * light ground.
+ * Move a colour away from the ground until it meets the contrast threshold,
+ * preserving hue.
+ *
+ * The direction depends on the ground, which is the whole reason this had to
+ * be revisited for dark mode. On paper you darken a too-light club colour; on
+ * a dark ground the same colour is already legible and it is the dark clubs
+ * that vanish, so there you lighten instead. Terminates in both directions
+ * because black clears 3:1 against a light ground and white clears it against
+ * a dark one.
  */
-function darkenToContrast(rgb: Rgb, ground: Rgb, target: number): Rgb {
+function adjustToContrast(rgb: Rgb, ground: Rgb, target: number): Rgb {
+  const groundIsLight = luminance(ground) > 0.5;
   let current = rgb;
-  // 40 steps of 5% is enough to reach near-black from any starting colour.
+
   for (let i = 0; i < 40 && contrast(current, ground) < target; i++) {
-    current = { r: current.r * 0.95, g: current.g * 0.95, b: current.b * 0.95 };
+    current = groundIsLight
+      ? { r: current.r * 0.95, g: current.g * 0.95, b: current.b * 0.95 }
+      : {
+          r: current.r + (255 - current.r) * 0.08,
+          g: current.g + (255 - current.g) * 0.08,
+          b: current.b + (255 - current.b) * 0.08,
+        };
   }
   return current;
 }
@@ -93,12 +108,13 @@ export interface ResolvedColor {
   /** Six hex digits, no leading '#'. */
   hex: string;
   /** Which rule produced it — useful in tests and when explaining the choice. */
-  source: "primary" | "secondary" | "darkened-primary" | "darkened-secondary" | "fallback";
+  source: "primary" | "secondary" | "adjusted-primary" | "adjusted-secondary" | "fallback";
   contrast: number;
 }
 
 /** Used when a club has no usable colour at all, so the UI always gets something. */
-const FALLBACK = "14161a";
+const FALLBACK_ON_LIGHT = "14161a";
+const FALLBACK_ON_DARK = "e9e6df";
 
 /**
  * Resolve a club's display colour.
@@ -135,16 +151,50 @@ export function resolveClubColor(
 
   const base = primaryIsAchromatic ? (s ?? p) : p;
   if (!base) {
-    const fb = parseHex(FALLBACK)!;
-    return { hex: FALLBACK, source: "fallback", contrast: contrast(fb, ground) };
+    const fallback = luminance(ground) > 0.5 ? FALLBACK_ON_LIGHT : FALLBACK_ON_DARK;
+    return {
+      hex: fallback,
+      source: "fallback",
+      contrast: contrast(parseHex(fallback)!, ground),
+    };
   }
 
-  const darkened = darkenToContrast(base, ground, MIN_CONTRAST);
+  const adjusted = adjustToContrast(base, ground, MIN_CONTRAST);
   return {
-    hex: toHex(darkened),
-    source: base === s ? "darkened-secondary" : "darkened-primary",
-    contrast: contrast(darkened, ground),
+    hex: toHex(adjusted),
+    source: base === s ? "adjusted-secondary" : "adjusted-primary",
+    contrast: contrast(adjusted, ground),
   };
+}
+
+/**
+ * Both themes' colours for one club.
+ *
+ * Resolution happens on the server, but the theme is decided in the browser by
+ * prefers-color-scheme, so a single resolved colour cannot be correct for both.
+ * Emitting the pair as CSS custom properties lets the stylesheet choose,
+ * keeping the whole thing free of JavaScript.
+ */
+export function clubColorPair(
+  primary: string | null | undefined,
+  secondary: string | null | undefined,
+): { light: string; dark: string } {
+  return {
+    light: `#${resolveClubColor(primary, secondary, GROUND_LIGHT).hex}`,
+    dark: `#${resolveClubColor(primary, secondary, GROUND_DARK).hex}`,
+  };
+}
+
+/**
+ * Inline style carrying both themes' colours. Pair with the `club-tint` class,
+ * which resolves `--club` to whichever ground is active.
+ */
+export function clubTintStyle(
+  primary: string | null | undefined,
+  secondary: string | null | undefined,
+): React.CSSProperties {
+  const { light, dark } = clubColorPair(primary, secondary);
+  return { "--club-light": light, "--club-dark": dark } as React.CSSProperties;
 }
 
 /** Convenience for JSX: returns "#rrggbb". */

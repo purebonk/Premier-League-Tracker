@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { neonQueryable } from "@/db/queryable";
 import { standings } from "@/lib/stats";
-import { clubColor } from "@/lib/colors";
+import { clubTintStyle } from "@/lib/colors";
 import { parseViewParams } from "@/lib/view-params";
 import { SeasonNotStarted } from "@/components/SeasonNotStarted";
 
@@ -91,9 +91,10 @@ export default async function CannTablePage({
                     >
                       <span
                         aria-hidden="true"
-                        className="inline-block h-3.5 w-[3px] shrink-0 rounded-[1px]"
+                        className="club-tint inline-block h-3.5 w-[3px] shrink-0 rounded-[1px]"
                         style={{
-                          backgroundColor: clubColor(club.primaryColor, club.secondaryColor),
+                          ...clubTintStyle(club.primaryColor, club.secondaryColor),
+                          background: "var(--club)",
                         }}
                       />
                       <span className="truncate">{club.shortName}</span>

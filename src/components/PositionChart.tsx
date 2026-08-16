@@ -18,7 +18,8 @@ export interface ChartClub {
   name: string;
   shortName: string;
   slug: string;
-  color: string;
+  colorLight: string;
+  colorDark: string;
 }
 
 export interface ChartPoint {
@@ -140,7 +141,16 @@ export function PositionChart({
                 const isFocused = focused === club.teamId;
                 const dimmed = focused !== null && !isFocused;
                 return (
-                  <g key={club.teamId}>
+                  <g
+                    key={club.teamId}
+                    className="club-tint"
+                    style={
+                      {
+                        "--club-light": club.colorLight,
+                        "--club-dark": club.colorDark,
+                      } as React.CSSProperties
+                    }
+                  >
                     {/* Wide invisible stroke gives the thin line a usable hit area. */}
                     <path
                       d={pathFor(club.teamId)}
@@ -156,7 +166,7 @@ export function PositionChart({
                     <path
                       d={pathFor(club.teamId)}
                       fill="none"
-                      stroke={club.color}
+                      stroke="var(--club)"
                       strokeWidth={isFocused ? 2.75 : 1.5}
                       strokeOpacity={dimmed ? 0.16 : 1}
                       strokeLinejoin="round"
@@ -225,8 +235,14 @@ export function PositionChart({
                   <span className="w-4 text-right text-ink-muted">{p.position}</span>
                   <span
                     aria-hidden="true"
-                    className="inline-block h-3 w-[3px] shrink-0 rounded-[1px]"
-                    style={{ backgroundColor: club.color }}
+                    className="club-tint inline-block h-3 w-[3px] shrink-0 rounded-[1px]"
+                    style={
+                      {
+                        "--club-light": club.colorLight,
+                        "--club-dark": club.colorDark,
+                        background: "var(--club)",
+                      } as React.CSSProperties
+                    }
                   />
                   <Link href={`/club/${club.slug}`} className="min-w-0 flex-1 truncate hover:underline">
                     {club.shortName}

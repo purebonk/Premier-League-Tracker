@@ -72,8 +72,8 @@ export function StandingsTable({
   if (rows.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse text-[13px]">
+    <div className="max-w-[880px] overflow-x-auto">
+      <table className="zebra w-full min-w-[620px] border-collapse text-[13px]">
         <thead>
           <tr className="border-b border-rule-strong">
             <th scope="col" className="label w-8 py-2 pr-2 text-right font-normal">
@@ -100,9 +100,9 @@ export function StandingsTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.teamId} className="border-b border-rule last:border-0">
-              <td className="py-1.5 pr-2 text-right text-ink-muted">{row.position}</td>
-              <td className="py-1.5">
+            <tr key={row.teamId} className="border-b border-rule/60 last:border-0">
+              <td className="py-[7px] pr-2 text-right text-[11px] text-ink-muted">{row.position}</td>
+              <td className="py-[7px]">
                 <Link
                   href={`/club/${row.slug}`}
                   className="inline-flex items-center gap-2 hover:underline"
@@ -111,20 +111,20 @@ export function StandingsTable({
                     primaryColor={row.primaryColor}
                     secondaryColor={row.secondaryColor}
                   />
-                  <span className="truncate">{row.shortName}</span>
+                  <span className="truncate font-medium">{row.shortName}</span>
                 </Link>
               </td>
-              <td className="py-1.5 text-right text-ink-muted">{row.played}</td>
-              <td className="py-1.5 text-right text-ink-muted">{row.won}</td>
-              <td className="py-1.5 text-right text-ink-muted">{row.drawn}</td>
-              <td className="py-1.5 text-right text-ink-muted">{row.lost}</td>
-              <td className="py-1.5 text-right text-ink-muted">{row.goalsFor}</td>
-              <td className="py-1.5 text-right text-ink-muted">{row.goalsAgainst}</td>
-              <td className="py-1.5 text-right text-ink-muted">
+              <td className="py-[7px] text-right text-ink-muted">{row.played}</td>
+              <td className="py-[7px] text-right">{row.won}</td>
+              <td className="py-[7px] text-right">{row.drawn}</td>
+              <td className="py-[7px] text-right">{row.lost}</td>
+              <td className="py-[7px] text-right">{row.goalsFor}</td>
+              <td className="py-[7px] text-right">{row.goalsAgainst}</td>
+              <td className="py-[7px] text-right font-medium">
                 {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
               </td>
-              <td className="py-1.5 pl-3 text-right font-semibold">{row.points}</td>
-              <td className="hidden py-1.5 pl-4 sm:table-cell">
+              <td className="py-[7px] pl-3 text-right text-[14px] font-semibold">{row.points}</td>
+              <td className="hidden py-[7px] pl-4 sm:table-cell">
                 <FormStrip form={row.form} />
               </td>
             </tr>

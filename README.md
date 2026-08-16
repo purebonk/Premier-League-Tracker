@@ -7,6 +7,47 @@ streaks, head-to-head.
 
 **Live:** https://premier-league-tracker-alpha.vercel.app
 
+![CI](https://github.com/purebonk/Premier-League-Tracker/actions/workflows/ci.yml/badge.svg)
+
+---
+
+## What it looks like
+
+**The table.** Every view is one SQL aggregation with a different filter —
+venue, recency, opponent set, sort — and each control changes only a query
+parameter, so the page ships no client JavaScript and any filtered table is a
+shareable link.
+
+![League table](docs/screenshots/table.png)
+
+**Top-six mini-league.** Only matches *between* the top six. Arsenal won the
+league by seven points and finish fourth here; Aston Villa finished fourth
+overall and top this. One predicate, a completely different story — and not
+something the source API can answer.
+
+![Top six mini-league](docs/screenshots/top-six-mini-league.png)
+
+**Position over time.** Hand-written SVG, no charting library. One line per
+club, y-axis inverted, and a scrubber that moves through the season while the
+table beside it reorders to the standings at that point.
+
+![Position over time](docs/screenshots/position-over-time.png)
+
+**Club page.** Position, form, current streaks, home and away splits, that
+club's position line, every result, and the head-to-head record against their
+next opponent.
+
+![Club page](docs/screenshots/club-page.png)
+
+**Points gaps.** The same standings as a Cann table: points are the vertical
+axis, so the space between clubs *is* the gap.
+
+![Cann table](docs/screenshots/cann-table.png)
+
+Both themes follow `prefers-color-scheme`, with a toggle to override it.
+
+![Dark theme](docs/screenshots/table-dark.png)
+
 ---
 
 ## The problem
@@ -136,6 +177,44 @@ per-row upserts would not have survived a serverless function timeout.
 `timingSafeEqual`, so response timing doesn't leak how much of the secret
 matched.
 
+## Club colours, and why they need a rule
+
+Colours come from the source, but a colour that identifies a club is not
+necessarily a colour you can see. Five of twenty clubs in 2025/26 play in white
+or near-white and would be invisible on the light ground; on the dark ground the
+problem inverts and it is Newcastle's black that vanishes.
+
+One function resolves every club to a legible colour per theme, and everything
+that paints a club calls it:
+
+1. Use the primary if it clears 3:1 against the active ground.
+2. If it fails and has no hue to preserve, use the secondary if that clears.
+3. Otherwise adjust it — darker on the light ground, lighter on the dark one —
+   keeping hue and saturation.
+
+Step 2's condition is the part that matters. Swapping whenever a fallback
+exists would send Newcastle from black to their white secondary and darken it to
+a hueless grey. Adjusting a light primary that *has* hue beats swapping to a
+secondary that identifies nothing: Manchester City resolve to a deep sky blue
+rather than the black their secondary would give, and Wolves stay gold.
+
+Verified for all 23 stored clubs against both grounds, including the three
+promoted for 2026/27 — Coventry and Hull both needed adjusting, which is the
+argument for a rule over a hand-maintained list.
+
+## Performance
+
+The read path never calls ESPN, so page latency is a database round trip plus
+render. Pages use `revalidate` rather than recomputing per request, since
+2025/26 never changes and 2026/27 changes only when ingest runs.
+
+The honest number: a **cold start measures ~2.7s**. That is a serverless
+function boot plus a first connection to Neon, not query time — the same route
+warm returns in a fraction of that, and the ingest endpoint round-trips in
+**168ms**. Both are measured, not estimated. Removing the cold start means
+keeping a function warm or moving off a scale-to-zero platform, which is not
+worth doing for a portfolio project, so it is recorded rather than hidden.
+
 ## Running locally
 
 ```bash
@@ -156,10 +235,29 @@ npm run typecheck  # tsc --noEmit
 Next.js (App Router) · TypeScript · Tailwind · Drizzle ORM · Neon Postgres ·
 Vercel · GitHub Actions · Vitest
 
+## Tests and CI
+
+`tsc --noEmit`, ESLint, Vitest and a production build run on every pull request
+and every push to `main`.
+
+The query tests run against **PGlite — real PostgreSQL compiled to WebAssembly**
+— applying the committed migrations, so window functions, lateral joins and the
+`derived_matchweeks` view behave exactly as they do on Neon. No database
+service, no secrets, and a fork's pull request runs them identically.
+
+Fixtures are a four-club league whose every value is computable by hand,
+covering a draw, a goalless draw, a postponed fixture, a promoted club with no
+prior-season history, and clubs level on every tiebreaker. One test asserts the
+league *balances* — goals for equals goals against and goal difference sums to
+zero — which catches a lateral join that ever double-counts a club or drops a
+side of a fixture.
+
 ## Status
 
-Ingestion, backfill, and scheduling are live. Both the completed 2025/26 season
-and the 2026/27 fixture list are loaded — 760 matches across 23 clubs.
+Complete. 760 matches across two seasons and 23 clubs, ingested on a 10-minute
+schedule, with the table, form, streaks, head-to-head, matchweek derivation and
+position history all computed in SQL.
 
-Next: derived statistics as SQL aggregations (league table with full
-tiebreakers, form, streaks, head-to-head) and the interface built on top of them.
+Deliberately not built: live score push, a cache layer (the derived queries are
+single-digit milliseconds over 760 rows, and claiming a cache that wasn't needed
+would be dishonest), accounts, and player-level statistics.

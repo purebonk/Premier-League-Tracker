@@ -1,4 +1,5 @@
 import type { PositionPoint } from "@/lib/stats";
+import { clubTintStyle } from "@/lib/colors";
 
 /**
  * One club's position across the season, as a static SVG. No interaction here
@@ -7,11 +8,13 @@ import type { PositionPoint } from "@/lib/stats";
  */
 export function MiniPositionLine({
   points,
-  color,
+  primaryColor,
+  secondaryColor,
   clubs = 20,
 }: {
   points: PositionPoint[];
-  color: string;
+  primaryColor: string | null;
+  secondaryColor: string | null;
   clubs?: number;
 }) {
   if (points.length < 2) return null;
@@ -39,7 +42,8 @@ export function MiniPositionLine({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-auto w-full"
+      className="club-tint h-auto w-full"
+      style={clubTintStyle(primaryColor, secondaryColor)}
       role="img"
       aria-label={`League position by matches played, finishing ${last.position}`}
     >
@@ -65,8 +69,8 @@ export function MiniPositionLine({
           {pos}
         </text>
       ))}
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
-      <circle cx={x(last.matchweek)} cy={y(last.position)} r="3" fill={color} />
+      <path d={path} fill="none" stroke="var(--club)" strokeWidth="2" strokeLinejoin="round" />
+      <circle cx={x(last.matchweek)} cy={y(last.position)} r="3" fill="var(--club)" />
     </svg>
   );
 }
