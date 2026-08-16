@@ -19,7 +19,13 @@ const NAV = [
 // other ground. Everything else about theming is pure CSS.
 const NO_FLASH = `try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Typed explicitly rather than with Next's generated `LayoutProps`, which only
+// exists after a build and so is unavailable when CI typechecks a clean clone.
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className="h-full antialiased">
       <head>
