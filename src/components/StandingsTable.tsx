@@ -4,19 +4,27 @@ import { viewHref, type ViewParams } from "@/lib/view-params";
 import { ClubMark } from "./ClubMark";
 import { FormStrip } from "./FormStrip";
 
+/**
+ * A narrow screen drops columns rather than growing a horizontal scrollbar.
+ * Position, club, played, goal difference and points survive at every width,
+ * because those are what the table is for; the breakdown returns as space
+ * allows. `visibility` is a Tailwind class, not a media query in JS, so this
+ * costs nothing at runtime.
+ */
 const COLUMNS: Array<{
   key: SortColumn;
   label: string;
   title: string;
   /** Descending is "best first" for most stats; position and name read up. */
   ascFirst?: boolean;
+  visibility?: string;
 }> = [
   { key: "played", label: "P", title: "Played", ascFirst: false },
-  { key: "won", label: "W", title: "Won" },
-  { key: "drawn", label: "D", title: "Drawn" },
-  { key: "lost", label: "L", title: "Lost" },
-  { key: "goalsFor", label: "GF", title: "Goals for" },
-  { key: "goalsAgainst", label: "GA", title: "Goals against", ascFirst: true },
+  { key: "won", label: "W", title: "Won", visibility: "hidden sm:table-cell" },
+  { key: "drawn", label: "D", title: "Drawn", visibility: "hidden sm:table-cell" },
+  { key: "lost", label: "L", title: "Lost", visibility: "hidden sm:table-cell" },
+  { key: "goalsFor", label: "GF", title: "Goals for", visibility: "hidden md:table-cell" },
+  { key: "goalsAgainst", label: "GA", title: "Goals against", ascFirst: true, visibility: "hidden md:table-cell" },
   { key: "goalDifference", label: "GD", title: "Goal difference" },
   { key: "points", label: "Pts", title: "Points" },
 ];
@@ -72,8 +80,8 @@ export function StandingsTable({
   if (rows.length === 0) return null;
 
   return (
-    <div className="max-w-[880px] overflow-x-auto">
-      <table className="zebra w-full min-w-[620px] border-collapse text-[13px]">
+    <div className="max-w-[880px]">
+      <table className="zebra w-full border-collapse text-[13px]">
         <thead>
           <tr className="border-b border-rule-strong">
             <th scope="col" className="label w-8 py-2 pr-2 text-right font-normal">
@@ -88,7 +96,7 @@ export function StandingsTable({
                 scope="col"
                 className={`label w-10 py-2 text-right font-normal ${
                   col.key === "points" ? "pl-3" : ""
-                }`}
+                } ${col.visibility ?? ""}`}
               >
                 <SortLink {...col} column={col.key} view={view} />
               </th>
@@ -115,11 +123,11 @@ export function StandingsTable({
                 </Link>
               </td>
               <td className="py-[7px] text-right text-ink-muted">{row.played}</td>
-              <td className="py-[7px] text-right">{row.won}</td>
-              <td className="py-[7px] text-right">{row.drawn}</td>
-              <td className="py-[7px] text-right">{row.lost}</td>
-              <td className="py-[7px] text-right">{row.goalsFor}</td>
-              <td className="py-[7px] text-right">{row.goalsAgainst}</td>
+              <td className="hidden py-[7px] text-right sm:table-cell">{row.won}</td>
+              <td className="hidden py-[7px] text-right sm:table-cell">{row.drawn}</td>
+              <td className="hidden py-[7px] text-right sm:table-cell">{row.lost}</td>
+              <td className="hidden py-[7px] text-right md:table-cell">{row.goalsFor}</td>
+              <td className="hidden py-[7px] text-right md:table-cell">{row.goalsAgainst}</td>
               <td className="py-[7px] text-right font-medium">
                 {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
               </td>
