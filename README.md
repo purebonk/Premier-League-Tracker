@@ -29,7 +29,10 @@ something the source API can answer.
 
 **Position over time.** Hand-written SVG, no charting library. One line per
 club, y-axis inverted, and a scrubber that moves through the season while the
-table beside it reorders to the standings at that point.
+table beside it reorders to the standings at that point. Twenty lines at once
+is a thicket, so the view filters to the clubs that finished top six or bottom
+six — the axis stays the full league either way, so a filtered club still reads
+at its true position rather than being renumbered.
 
 ![Position over time](docs/screenshots/position-over-time.png)
 

@@ -38,17 +38,32 @@ export function PositionChart({
   clubs,
   points,
   weeks,
+  visibleIds,
 }: {
+  /** Every club in the season — needed for names, colours and the y-scale. */
   clubs: ChartClub[];
   points: ChartPoint[];
   weeks: number;
+  /** Which clubs to draw. Omit to draw them all. */
+  visibleIds?: number[];
 }) {
   const [week, setWeek] = useState(weeks);
   const [hovered, setHovered] = useState<number | null>(null);
   const [pinned, setPinned] = useState<number | null>(null);
 
   const focused = hovered ?? pinned;
+  // The y-axis is always the full league. Scaling it to the visible subset
+  // would put a filtered club at "1st" when it is really 14th.
   const clubCount = clubs.length;
+
+  const visible = useMemo(
+    () => (visibleIds ? new Set(visibleIds) : null),
+    [visibleIds],
+  );
+  const shown = useMemo(
+    () => (visible ? clubs.filter((c) => visible.has(c.teamId)) : clubs),
+    [clubs, visible],
+  );
 
   const byClub = useMemo(() => {
     const map = new Map<number, ChartPoint[]>();
@@ -61,12 +76,14 @@ export function PositionChart({
     return map;
   }, [points]);
 
+  // Positions stay the true league positions; filtering only decides which
+  // rows are listed, so a bottom-six view still reads 15th to 20th.
   const standingsAtWeek = useMemo(
     () =>
       points
-        .filter((p) => p.matchweek === week)
+        .filter((p) => p.matchweek === week && (!visible || visible.has(p.teamId)))
         .sort((a, b) => a.position - b.position),
-    [points, week],
+    [points, week, visible],
   );
 
   const x = (w: number) =>
@@ -137,7 +154,7 @@ export function PositionChart({
                 Matches played
               </text>
 
-              {clubs.map((club) => {
+              {shown.map((club) => {
                 const isFocused = focused === club.teamId;
                 const dimmed = focused !== null && !isFocused;
                 return (
