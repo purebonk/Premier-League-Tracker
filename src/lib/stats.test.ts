@@ -5,7 +5,7 @@ import {
   streaks,
   headToHead,
   positionHistory,
-  PRESETS,
+  latestSeasonWithResults,
 } from "./stats";
 
 /**
@@ -337,11 +337,14 @@ describe("standings: parameters combined", () => {
   });
 });
 
-describe("PRESETS", () => {
-  it("expresses named views as option fragments, not separate queries", async () => {
-    const viaPreset = await standings(db, { season: 2025, ...PRESETS.away });
-    const explicit = await standings(db, { season: 2025, venue: "away" });
-    expect(viaPreset).toEqual(explicit);
+describe("latestSeasonWithResults", () => {
+  it("returns the newest season that actually has results", async () => {
+    // 2026 exists in the fixtures and has one finished match.
+    expect(await latestSeasonWithResults(db)).toBe(2026);
+  });
+
+  it("returns null for a competition with nothing played", async () => {
+    expect(await latestSeasonWithResults(db, "esp.1")).toBeNull();
   });
 });
 

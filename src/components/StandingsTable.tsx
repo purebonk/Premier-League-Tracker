@@ -29,6 +29,12 @@ const COLUMNS: Array<{
   { key: "points", label: "Pts", title: "Points" },
 ];
 
+/** ARIA defines aria-sort on the column header, so it lives on the <th>. */
+function sortState(column: SortColumn, view: ViewParams) {
+  if (view.sort !== column) return "none" as const;
+  return view.direction === "asc" ? ("ascending" as const) : ("descending" as const);
+}
+
 function SortLink({
   column,
   label,
@@ -57,7 +63,6 @@ function SortLink({
     <Link
       href={viewHref(view, { sort: column, direction: nextDirection })}
       title={`${title} — sort ${nextDirection === "asc" ? "ascending" : "descending"}`}
-      aria-sort={active ? (view.direction === "asc" ? "ascending" : "descending") : "none"}
       className={`inline-flex items-center gap-0.5 hover:text-ink ${
         active ? "text-ink" : ""
       }`}
@@ -87,13 +92,18 @@ export function StandingsTable({
             <th scope="col" className="label w-8 py-2 pr-2 text-right font-normal">
               #
             </th>
-            <th scope="col" className="label py-2 text-left font-normal">
+            <th
+              scope="col"
+              aria-sort={sortState("name", view)}
+              className="label py-2 text-left font-normal"
+            >
               <SortLink column="name" label="Club" title="Club name" ascFirst view={view} />
             </th>
             {COLUMNS.map((col) => (
               <th
                 key={col.key}
                 scope="col"
+                aria-sort={sortState(col.key, view)}
                 className={`label w-10 py-2 text-right font-normal ${
                   col.key === "points" ? "pl-3" : ""
                 } ${col.visibility ?? ""}`}
@@ -112,7 +122,7 @@ export function StandingsTable({
               <td className="py-[7px] pr-2 text-right text-[11px] text-ink-muted">{row.position}</td>
               <td className="py-[7px]">
                 <Link
-                  href={`/club/${row.slug}`}
+                  href={`/club/${row.slug}?season=${view.season}`}
                   className="inline-flex items-center gap-2 hover:underline"
                 >
                   <ClubMark

@@ -5,13 +5,14 @@ import type { SortColumn, SortDirection, Venue } from "./stats";
  * shareable link and the page needs no client-side state at all.
  */
 
+/** Seasons offered in the switcher. Any ingested season is still reachable by URL. */
 export const SEASONS = [2025, 2026] as const;
-export type Season = (typeof SEASONS)[number];
 
 export type OpponentSet = "all" | "top6" | "bottom-half";
 
 export interface ViewParams {
-  season: Season;
+  /** Season start year: 2025 is the 2025/26 season. */
+  season: number;
   venue: Venue;
   lastN: number | null;
   opponents: OpponentSet;
@@ -42,8 +43,19 @@ function one(raw: RawParams, key: string): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-/** Parse untrusted query strings into a valid view. Anything unrecognised falls back. */
-export function parseViewParams(raw: RawParams): ViewParams {
+/**
+ * Parse untrusted query strings into a valid view. Anything unrecognised falls
+ * back.
+ *
+ * `defaultSeason` is passed in rather than hardcoded so the page can default to
+ * whichever season actually has results. The season itself is range-checked
+ * rather than tested against SEASONS, because a season can be ingested before
+ * that list is updated and rejecting it would silently show the wrong year.
+ */
+export function parseViewParams(
+  raw: RawParams,
+  defaultSeason: number = DEFAULTS.season,
+): ViewParams {
   const season = Number(one(raw, "season"));
   const venue = one(raw, "venue") as Venue | undefined;
   const last = one(raw, "last");
@@ -54,9 +66,10 @@ export function parseViewParams(raw: RawParams): ViewParams {
   const lastN = last && /^\d+$/.test(last) ? Math.min(38, Number(last)) : null;
 
   return {
-    season: (SEASONS as readonly number[]).includes(season)
-      ? (season as Season)
-      : DEFAULTS.season,
+    season:
+      Number.isInteger(season) && season >= 2000 && season <= 2100
+        ? season
+        : defaultSeason,
     venue: venue && VENUES.includes(venue) ? venue : DEFAULTS.venue,
     lastN: lastN && lastN > 0 ? lastN : null,
     opponents:
@@ -71,7 +84,10 @@ export function viewHref(current: ViewParams, changes: Partial<ViewParams>, path
   const next = { ...current, ...changes };
   const qs = new URLSearchParams();
 
-  if (next.season !== DEFAULTS.season) qs.set("season", String(next.season));
+  // Always explicit. The default season moves when a new season starts, so a
+  // link that omitted it would quietly come to mean a different year than it
+  // did when someone shared it.
+  qs.set("season", String(next.season));
   if (next.venue !== DEFAULTS.venue) qs.set("venue", next.venue);
   if (next.lastN !== null) qs.set("last", String(next.lastN));
   if (next.opponents !== DEFAULTS.opponents) qs.set("opponents", next.opponents);

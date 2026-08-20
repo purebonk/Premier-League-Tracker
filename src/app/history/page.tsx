@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { neonQueryable } from "@/db/queryable";
-import { positionHistory, standings } from "@/lib/stats";
+import { positionHistory, standings, latestSeasonWithResults } from "@/lib/stats";
 import { clubColorPair } from "@/lib/colors";
 import { PositionChart, type ChartClub } from "@/components/PositionChart";
 import { SeasonNotStarted } from "@/components/SeasonNotStarted";
-import { parseViewParams } from "@/lib/view-params";
+import { DEFAULTS, parseViewParams } from "@/lib/view-params";
 
 export const revalidate = 600;
 
@@ -32,9 +32,10 @@ export default async function HistoryPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const view = parseViewParams(params);
-  const group = parseGroup(params.clubs);
   const db = neonQueryable();
+  const defaultSeason = (await latestSeasonWithResults(db)) ?? DEFAULTS.season;
+  const view = parseViewParams(params, defaultSeason);
+  const group = parseGroup(params.clubs);
 
   // Both queries are server-side; the client component receives finished data
   // and never fetches. The interaction is client-side, the computation is not.
@@ -69,7 +70,7 @@ export default async function HistoryPage({
 
   const groupHref = (next: Group) => {
     const qs = new URLSearchParams();
-    if (view.season !== 2025) qs.set("season", String(view.season));
+    qs.set("season", String(view.season));
     if (next !== "all") qs.set("clubs", next);
     const query = qs.toString();
     return query ? `/history?${query}` : "/history";
@@ -88,7 +89,7 @@ export default async function HistoryPage({
       </div>
 
       {weeks === 0 ? (
-        <SeasonNotStarted season={view.season} />
+        <SeasonNotStarted season={view.season} completedSeason={defaultSeason} />
       ) : (
         <>
           <div className="flex items-center gap-2">
@@ -124,6 +125,7 @@ export default async function HistoryPage({
             points={points}
             weeks={weeks}
             visibleIds={visibleIds}
+            season={view.season}
           />
         </>
       )}

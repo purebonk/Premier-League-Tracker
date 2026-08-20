@@ -39,6 +39,7 @@ export function PositionChart({
   points,
   weeks,
   visibleIds,
+  season,
 }: {
   /** Every club in the season — needed for names, colours and the y-scale. */
   clubs: ChartClub[];
@@ -46,6 +47,8 @@ export function PositionChart({
   weeks: number;
   /** Which clubs to draw. Omit to draw them all. */
   visibleIds?: number[];
+  /** Carried into club links so the destination shows the same season. */
+  season: number;
 }) {
   const [week, setWeek] = useState(weeks);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -222,7 +225,7 @@ export function PositionChart({
               <>
                 Showing{" "}
                 <Link
-                  href={`/club/${clubById.get(focused)?.slug}`}
+                  href={`/club/${clubById.get(focused)?.slug}?season=${season}`}
                   className="underline underline-offset-2 hover:text-ink"
                 >
                   {clubById.get(focused)?.name}
@@ -261,7 +264,10 @@ export function PositionChart({
                       } as React.CSSProperties
                     }
                   />
-                  <Link href={`/club/${club.slug}`} className="min-w-0 flex-1 truncate hover:underline">
+                  <Link
+                    href={`/club/${club.slug}?season=${season}`}
+                    className="min-w-0 flex-1 truncate hover:underline"
+                  >
                     {club.shortName}
                   </Link>
                   <span className="w-6 text-right font-semibold">{p.points}</span>

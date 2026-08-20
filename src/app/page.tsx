@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { neonQueryable } from "@/db/queryable";
-import { standings } from "@/lib/stats";
-import { describeView, parseViewParams } from "@/lib/view-params";
+import { standings, latestSeasonWithResults } from "@/lib/stats";
+import { DEFAULTS, describeView, parseViewParams } from "@/lib/view-params";
 import { StandingsTable } from "@/components/StandingsTable";
 import { TableControls } from "@/components/TableControls";
 import { SeasonNotStarted } from "@/components/SeasonNotStarted";
@@ -15,19 +15,25 @@ export default async function TablePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const view = parseViewParams(await searchParams);
+  // searchParams is awaited before any database work. Reaching the dynamic
+  // API first marks the route dynamic up front; doing I/O ahead of it leaves
+  // Next trying to prerender a static shell around the query, which stalls
+  // the build.
+  const raw = await searchParams;
   const db = neonQueryable();
+  const defaultSeason = (await latestSeasonWithResults(db)) ?? DEFAULTS.season;
+  const view = parseViewParams(raw, defaultSeason);
 
   // The opponent presets are defined against the *unfiltered* league, so the
   // "top six" stays the actual top six rather than the top six of whatever
-  // filter is already applied.
-  const base = await standings(db, { season: view.season });
-
+  // filter is already applied. Only fetched when a preset actually needs it.
   let opponents: number[] = [];
-  if (view.opponents === "top6") {
-    opponents = base.slice(0, 6).map((r) => r.teamId);
-  } else if (view.opponents === "bottom-half") {
-    opponents = base.slice(Math.ceil(base.length / 2)).map((r) => r.teamId);
+  if (view.opponents !== "all") {
+    const base = await standings(db, { season: view.season });
+    opponents =
+      view.opponents === "top6"
+        ? base.slice(0, 6).map((r) => r.teamId)
+        : base.slice(Math.ceil(base.length / 2)).map((r) => r.teamId);
   }
 
   const rows = await standings(db, {
@@ -54,7 +60,7 @@ export default async function TablePage({
       <p className="text-[12px] text-ink-muted">{describeView(view)}</p>
 
       {rows.length === 0 ? (
-        <SeasonNotStarted season={view.season} />
+        <SeasonNotStarted season={view.season} completedSeason={defaultSeason} />
       ) : (
         <>
           <StandingsTable rows={rows} view={view} />

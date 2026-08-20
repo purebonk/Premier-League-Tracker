@@ -237,17 +237,6 @@ export function standings(db: Queryable, opts: StandingsOptions): Promise<TableR
     .then((rows) => rows.map(toTableRow));
 }
 
-/**
- * Named views, expressed purely as option fragments. These are what the UI
- * offers as one-click presets; none of them is a separate query.
- */
-export const PRESETS = {
-  full: {},
-  form: { lastN: FORM_WINDOW },
-  home: { venue: "home" as Venue },
-  away: { venue: "away" as Venue },
-} satisfies Record<string, Partial<StandingsOptions>>;
-
 export interface StreakRow {
   teamId: number;
   name: string;
@@ -536,4 +525,25 @@ function toTableRow(r: Record<string, unknown>): TableRow {
     secondaryColor: (r.secondary_color as string | null) ?? null,
     slug: slugify(String(r.name)),
   };
+}
+
+/**
+ * The most recent season that has any results.
+ *
+ * Used as the default view so the site follows the calendar on its own: while
+ * 2026/27 holds only fixtures this stays on the completed 2025/26 season, and
+ * it moves across by itself once the first results are ingested. Hardcoding a
+ * season means the site silently shows last year forever.
+ */
+export async function latestSeasonWithResults(
+  db: Queryable,
+  competition = DEFAULT_COMPETITION,
+): Promise<number | null> {
+  const rows = await db.query<Record<string, unknown>>(
+    `select max(season) as season from matches
+     where competition = $1 and status = 'finished'`,
+    [competition],
+  );
+  const value = rows[0]?.season;
+  return value === null || value === undefined ? null : Number(value);
 }

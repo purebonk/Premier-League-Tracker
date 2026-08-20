@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { neonQueryable } from "@/db/queryable";
-import { standings } from "@/lib/stats";
+import { standings, latestSeasonWithResults } from "@/lib/stats";
 import { clubTintStyle } from "@/lib/colors";
-import { parseViewParams } from "@/lib/view-params";
+import { DEFAULTS, parseViewParams } from "@/lib/view-params";
 import { SeasonNotStarted } from "@/components/SeasonNotStarted";
 
 export const revalidate = 600;
@@ -16,15 +16,21 @@ export default async function CannTablePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const view = parseViewParams(await searchParams);
+  // searchParams is awaited before any database work. Reaching the dynamic
+  // API first marks the route dynamic up front; doing I/O ahead of it leaves
+  // Next trying to prerender a static shell around the query, which stalls
+  // the build.
+  const raw = await searchParams;
   const db = neonQueryable();
+  const defaultSeason = (await latestSeasonWithResults(db)) ?? DEFAULTS.season;
+  const view = parseViewParams(raw, defaultSeason);
   const rows = await standings(db, { season: view.season });
 
   if (rows.length === 0) {
     return (
       <div className="space-y-6">
         <h1 className="text-[20px] font-semibold tracking-tight">Points gaps</h1>
-        <SeasonNotStarted season={view.season} />
+        <SeasonNotStarted season={view.season} completedSeason={defaultSeason} />
       </div>
     );
   }
@@ -58,7 +64,10 @@ export default async function CannTablePage({
           Matches played in brackets.
         </p>
         <p className="text-[12px] text-ink-muted">
-          <Link href="/" className="underline underline-offset-2 hover:text-ink">
+          <Link
+            href={`/?season=${view.season}`}
+            className="underline underline-offset-2 hover:text-ink"
+          >
             Back to the standard table
           </Link>
         </p>
@@ -86,7 +95,7 @@ export default async function CannTablePage({
                   {clubs.map((club) => (
                     <Link
                       key={club.teamId}
-                      href={`/club/${club.slug}`}
+                      href={`/club/${club.slug}?season=${view.season}`}
                       className="inline-flex items-center gap-1.5 text-[13px] hover:underline"
                     >
                       <span

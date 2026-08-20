@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { neonQueryable } from "@/db/queryable";
-import { standings, streaks, headToHead, positionHistory } from "@/lib/stats";
+import {
+  standings,
+  streaks,
+  headToHead,
+  positionHistory,
+  latestSeasonWithResults,
+} from "@/lib/stats";
+import { DEFAULTS, parseViewParams } from "@/lib/view-params";
 import { findClubBySlug, clubMatches, nextFixture } from "@/lib/club";
 import { clubTintStyle } from "@/lib/colors";
 import { FormStrip } from "@/components/FormStrip";
@@ -9,7 +16,10 @@ import { MiniPositionLine } from "@/components/MiniPositionLine";
 
 export const revalidate = 600;
 
-const SEASON = 2025;
+/** "2025" -> "2025/26" */
+function seasonLabel(season: number): string {
+  return `${season}/${String(season + 1).slice(2)}`;
+}
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -66,9 +76,20 @@ function SplitTable({ rows }: { rows: Array<{ label: string; p: number; w: numbe
   );
 }
 
-export default async function ClubPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ClubPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
   const db = neonQueryable();
+
+  // Follows the same season as the rest of the site, so a club opened from the
+  // 2026/27 table shows 2026/27 rather than silently reverting to last season.
+  const defaultSeason = (await latestSeasonWithResults(db)) ?? DEFAULTS.season;
+  const SEASON = parseViewParams(await searchParams, defaultSeason).season;
 
   const club = await findClubBySlug(db, slug);
   if (!club) notFound();
@@ -110,8 +131,11 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
           <h1 className="text-[22px] font-semibold tracking-tight">{club.name}</h1>
         </div>
         <p className="text-[12px] text-ink-muted">
-          2025/26 season ·{" "}
-          <Link href="/" className="underline underline-offset-2 hover:text-ink">
+          {seasonLabel(SEASON)} season ·{" "}
+          <Link
+            href={`/?season=${SEASON}`}
+            className="underline underline-offset-2 hover:text-ink"
+          >
             back to the table
           </Link>
         </p>
@@ -175,7 +199,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
         </>
       ) : (
         <p className="border border-rule bg-raised px-4 py-3 text-[13px] text-ink-muted">
-          {club.name} did not play in the Premier League in 2025/26.
+          {club.name} has no {seasonLabel(SEASON)} results on record.
         </p>
       )}
 
